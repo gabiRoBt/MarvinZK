@@ -1,0 +1,27 @@
+/target/
+/methods/guest/target/
+**/*.rs.bk
+Cargo.lock
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Project specific
+*.db
+*.sqlite
+*.sqlite3
+/keys/
+/benchmark_results.json
+
+# Ignore notes and drafts
+*.txt
+*.md
+*.svg
+!README.md
