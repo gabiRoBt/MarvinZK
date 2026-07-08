@@ -25,3 +25,6 @@ Thumbs.db
 *.md
 *.svg
 !README.md
+
+# Runtime Data
+shared_data/

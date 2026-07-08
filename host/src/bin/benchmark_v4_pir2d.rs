@@ -1,5 +1,5 @@
 use std::time::Instant;
-use tfhe::{generate_keys, ConfigBuilder, FheUint32};
+use tfhe::{generate_keys, ConfigBuilder, FheUint32, FheBool};
 use tfhe::prelude::*;
 use rayon::prelude::*;
 
@@ -61,14 +61,14 @@ fn main() {
     // In loc de 100 de elemente, trimite doar 10 + 10 = 20 elemente pe retea!
     let mut row_query = Vec::with_capacity(rows);
     for r in 0..rows {
-        let bit = if r == target_row { 1u32 } else { 0u32 };
-        row_query.push(FheUint32::encrypt(bit, &client_key));
+        let bit = r == target_row;
+        row_query.push(FheBool::encrypt(bit, &client_key));
     }
 
     let mut col_query = Vec::with_capacity(cols);
     for c in 0..cols {
-        let bit = if c == target_col { 1u32 } else { 0u32 };
-        col_query.push(FheUint32::encrypt(bit, &client_key));
+        let bit = c == target_col;
+        col_query.push(FheBool::encrypt(bit, &client_key));
     }
 
     let start_2d = Instant::now();
@@ -81,9 +81,9 @@ fn main() {
         (0..cols).into_par_iter().map(|c| {
             // Pentru fiecare coloana, facem produsul scalar pe verticala folosind row_query
             let col_sum = db.iter().enumerate().map(|(r, row)| {
-                let is_match = row_query[r].eq(&one);
+                let is_match = &row_query[r];
                 is_match.if_then_else(&row[c].packed_data, &zero)
-            }).reduce(|| zero.clone(), |a, b| a + b);
+            }).fold(zero.clone(), |a, b| a + b);
             col_sum
         }).collect()
     });
@@ -92,7 +92,7 @@ fn main() {
     // Acum facem produsul scalar final intre rândul colapsat si col_query
     let final_result = pool.install(|| {
         collapsed_row.par_iter().zip(col_query.par_iter()).map(|(cell, col_bit)| {
-            let is_match = col_bit.eq(&one);
+            let is_match = col_bit;
             is_match.if_then_else(cell, &zero)
         }).reduce(|| zero.clone(), |a, b| a + b)
     });
@@ -101,7 +101,7 @@ fn main() {
     println!("> Extragere completata in: \t{:.2?}", duration_2d);
 
     // 4. Verificare rezultat pe Client
-    let decrypted = final_result.decrypt(&client_key);
+    let decrypted: u32 = final_result.decrypt(&client_key);
     let diag = (decrypted >> 8) & 0xFF;
     let risk = decrypted & 0xFF;
     

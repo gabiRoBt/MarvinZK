@@ -1,7 +1,7 @@
 use axum::{
     routing::post,
     Router, Json,
-    extract::State,
+    extract::{State, DefaultBodyLimit},
     http::StatusCode,
     response::IntoResponse,
 };
@@ -76,6 +76,7 @@ async fn main() {
     let app = Router::new()
         .route("/init_share", post(init_share))
         .route("/decrypt_share", post(get_decrypt_share))
+        .layer(DefaultBodyLimit::disable())
         .layer(CorsLayer::permissive())
         .with_state(state);
 
